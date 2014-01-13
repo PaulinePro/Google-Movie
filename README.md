@@ -9,4 +9,4 @@ Parse all the movie informations on Google Movie website(http://www.google.com/m
 * Requests - http://docs.python-requests.org/en/latest/
 
 ## To-Do
-* Everything is working fine now.
+* There seems to be some problems when "hl" set to "en"
