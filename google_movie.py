@@ -8,6 +8,8 @@ import re
 
 class Movie:
     def __init__(self, hl='en'):
+        '''hl will be the language that google uses to query.'''
+
         self.base_url = 'http://www.google.com'
         self.hl = hl
 
@@ -22,21 +24,30 @@ class Movie:
 
         self.near = location
 
-    def __makeUrl(self, sort=None, start=None, mid=None):
+    def __makeUrl(self, sort=None, start=None, mid=None, tid=None):
         url = self.base_url + '/movies?'
         url += 'hl={0}'.format(self.hl)
         url += '&near={0}'.format(self.near)
 
+        ''' sort = 0: sort by theater
+                   1: sort by movie
+        '''
         if sort is None:
             url += '&sort=1'
         else:
             url += '&sort={0}'.format(sort)
 
+        ''' start = only show the times after this parameter.'''
         if start is not None:
             url += '&start={0}'.format(start)
 
+        ''' mid = movie id.'''
         if mid is not None:
             url += '&mid={0}'.format(mid)
+
+        ''' tid = theater id.'''
+        if tid is not None:
+            url += '&tid={0}'.format(tid)
 
         return url
 
@@ -55,11 +66,10 @@ class Movie:
 
         for td in navbar.find_all('td'):
             text = td.get_text()
-            try:
-                page = int(text)
-                pages.append(page)
-            except ValueError:
-                pass
+            # text may be "next page" or "previous page",
+            # but we only want the number.
+            if text.isdigit():
+                pages.append(int(text))
         return pages
 
     def __getMovieLinkInOnePage(self, start):
@@ -88,6 +98,8 @@ class Movie:
         return links
 
     def __getMovieId(self, url):
+        '''Parse the url which key is "mid"'''
+
         mid = ''
         for segment in url.split('&'):
             if 'mid' in segment:
@@ -103,12 +115,17 @@ class Movie:
 
         response = requests.get(url)
         soup = BeautifulSoup(response.content)
+
         movie_name = soup.find('h2', itemprop='name').get_text()
 
-        movie_description = ''
-        for text in soup.find('div', class_='syn').stripped_strings:
-            if u'more' not in text and u'less' not in text:
-                movie_description += text
+        # First get "less" segment, then get "more" segment.
+        # But the "more" text is a child node of "#synopsisSecond0",
+        # so we just should only get the first one.
+        movie_description = soup.find(
+            'span', itemprop='description').get_text()
+        description = soup.find('span', id='SynopsisSecond0')
+        if description:
+            movie_description += list(description.stripped_strings)[0]
 
         infos = soup.find('div', class_='info').get_text()
         movie_info = [info.strip() for info in infos.split('-')]
@@ -133,7 +150,6 @@ class Movie:
         for theater in soup.find_all('div', class_='theater'):
             theater_name = theater.find('div', class_='name').get_text()
             theater_address = theater.find('div', class_='address').get_text()
-
 
             theater_times = []
             time = theater.find('div', class_='times')
@@ -168,15 +184,11 @@ def main():
     movie = Movie(hl='zh-TW')
 
     # Search by the latitude and longitude
-    movie.searchByCoordinates(25.0333, 121.6333)
+    #movie.searchByCoordinates(25.0333, 121.6333)
     # or search by the location name
-    #movie.searchByLocation('Taipei')
+    movie.searchByLocation('Taipei')
 
-    movies = movie.getMovies()
-
-    # Print all the movie name
-    for movie in movies:
-        print movie['movie_name']
+    movie.getMovies()
 
 
 if __name__ == '__main__':
