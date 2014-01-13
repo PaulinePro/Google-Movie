@@ -48,7 +48,6 @@ class Movie:
         ''' tid = theater id.'''
         if tid is not None:
             url += '&tid={0}'.format(tid)
-
         return url
 
     def __getPageIndexes(self):
@@ -65,11 +64,11 @@ class Movie:
             return pages
 
         for td in navbar.find_all('td'):
-            text = td.get_text()
             # text may be "next page" or "previous page",
             # but we only want the number.
-            if text.isdigit():
-                pages.append(int(text))
+            for text in td.stripped_strings:
+                if text.isdigit() and int(text) not in pages:
+                    pages.append(int(text))
         return pages
 
     def __getMovieLinkInOnePage(self, start):
@@ -187,7 +186,6 @@ def main():
     #movie.searchByCoordinates(25.0333, 121.6333)
     # or search by the location name
     movie.searchByLocation('Taipei')
-
     movie.getMovies()
 
 
